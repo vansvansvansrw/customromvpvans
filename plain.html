@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RO MVP Macro Data</title>
+    <style>
+        body {
+            background-color: #000000; /* ดำสนิท */
+            color: #ffffff;
+            font-family: "Courier New", monospace; /* ฟอนต์พิมพ์ดีด อ่านง่ายสำหรับบอท */
+            font-size: 16px;
+            margin: 20px;
+            white-space: nowrap; /* ห้ามตัดคำขึ้นบรรทัดใหม่ */
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 800px; /* จำกัดความกว้างไม่ให้ยาวเกินไป */
+        }
+
+        td {
+            padding: 2px 5px; /* ระยะห่างระหว่างข้อความ */
+            vertical-align: top;
+        }
+
+        /* คอลัมน์ชื่อบอส */
+        .col-name {
+            width: 30%; /* ปรับความกว้างตามต้องการ */
+            min-width: 250px;
+            text-align: left;
+        }
+
+        /* คอลัมน์เครื่องหมาย : */
+        .col-sep {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* คอลัมน์สถานะ */
+        .col-status {
+            width: auto;
+            text-align: left;
+        }
+        
+        /* CSS Classes สำหรับสี */
+        .name-white { color: #ffffff; }
+        .name-green { color: #00ff00; }
+        
+        .status-dead { color: #ff0000; }   /* สีแดง */
+        .status-window { color: #ffffff; } /* สีขาว */
+        .status-alive { color: #00ff00; }  /* สีเขียว */
+    </style>
+</head>
+<body>
+
+    <div id="data-container">Loading...</div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // ============================================================
+        // 🔴 Config ของคุณ 🔴
+        // ============================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBG-s9H6mYhElU4jQutXOIq0VGZ5G7EEPA",
+            authDomain: "custom-ro-auto-boss-timing.firebaseapp.com",
+            databaseURL: "https://custom-ro-auto-boss-timing-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "custom-ro-auto-boss-timing",
+            storageBucket: "custom-ro-auto-boss-timing.firebasestorage.app",
+            messagingSenderId: "963784417984",
+            appId: "1:963784417984:web:bd15cc38064248f50f4325"
+        };
+
+        // รายชื่อบอสครบชุด
+        const mvpList = [
+            { id: 'amon_ra', name: 'Amon Ra' },
+            { id: 'eremes', name: 'Assassin Cross Eremes' },
+            { id: 'bacsojin', name: 'Bacsojin' },
+            { id: 'baphomet', name: 'Baphomet' },
+            { id: 'boitata', name: 'Boitata' },
+            { id: 'dark_lord', name: 'Dark Lord' },
+            { id: 'detale', name: 'Detale' },
+            { id: 'doppel', name: 'Doppelganger' },
+            { id: 'dracula', name: 'Dracula' },
+            { id: 'drake', name: 'Drake' },
+            { id: 'eddga', name: 'Eddga' },
+            { id: 'evil_snake_lord', name: 'Evil Snake Lord' },
+            { id: 'bishop', name: 'Fallen Bishop' },
+            { id: 'hatii', name: 'Garm / Hatii' },
+            { id: 'gloom', name: 'Gloom Under Night' },
+            { id: 'gold_queen', name: 'Gold Queen Scaraba' },
+            { id: 'gtb', name: 'Golden Thief Bug' },
+            { id: 'gopinich', name: 'Gopinich' },
+            { id: 'magaleta', name: 'High Priest Magaleta' },
+            { id: 'katrinn', name: 'High Wizard Katrinn' },
+            { id: 'ifrit', name: 'Ifrit' },
+            { id: 'samurai', name: 'Incantation Samurai' },
+            { id: 'kiel', name: 'Kiel D-01' },
+            { id: 'stormy', name: 'Stormy Knight' },
+            { id: 'lady_tanee', name: 'Lady Tanee' },
+            { id: 'leak', name: 'Leak' },
+            { id: 'seyren', name: 'Lord Knight Seyren' },
+            { id: 'lord_of_death', name: 'Lord of Death' },
+            { id: 'maya', name: 'Maya' },
+            { id: 'mistress', name: 'Mistress' },
+            { id: 'moonlight', name: 'Moonlight Flower' },
+            { id: 'orc_lord', name: 'Orc Lord' },
+            { id: 'osiris', name: 'Osiris' },
+            { id: 'pharaoh', name: 'Pharaoh' },
+            { id: 'phreeoni', name: 'Phreeoni' },
+            { id: 'queen_scaraba', name: 'Queen Scaraba' },
+            { id: 'rsx', name: 'RSX 0806' },
+            { id: 'shecil', name: 'Sniper Shecil' },
+            { id: 'tao_gunka', name: 'Tao Gunka' },
+            { id: 'turtle_general', name: 'Turtle General' },
+            { id: 'valkyrie', name: 'Valkyrie Randgris' },
+            { id: 'vesper', name: 'Vesper' },
+            { id: 'harword', name: 'Whitesmith Harword' },
+            { id: 'morocc', name: 'Wounded Morocc' },
+            { id: 'ygnizem', name: 'Ygnizem' },
+            // บอสหลายแมพ
+            { id: 'atroce_ra_fild02', name: 'Atroce (ra_fild02)' },
+            { id: 'atroce_ra_fild03', name: 'Atroce (ra_fild03)' },
+            { id: 'atroce_ra_fild04', name: 'Atroce (ra_fild04)' },
+            { id: 'atroce_ve_fild01', name: 'Atroce (ve_fild01)' },
+            { id: 'atroce_ve_fild02', name: 'Atroce (ve_fild02)' },
+            { id: 'orc_hero_gef_fild02', name: 'Orc Hero (gef_fild02)' },
+            { id: 'orc_hero_gef_fild14', name: 'Orc Hero (gef_fild14)' },
+            // บอสใหม่
+            { id: 'beelzebub', name: 'Beelzebub' }
+        ];
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const mvpRef = db.ref('mvp');
+        const container = document.getElementById('data-container');
+        
+        let currentData = {};
+
+        mvpRef.on('value', snapshot => {
+            currentData = snapshot.val() || {};
+            renderTextMode();
+        });
+
+        setInterval(() => { 
+            if(Object.keys(currentData).length > 0) renderTextMode(); 
+        }, 1000);
+
+        function renderTextMode() {
+            const now = new Date().getTime();
+            const LATE_MS = 600000; // 10 นาที
+
+            // เรียงตามตัวอักษร (A-Z)
+            const sortedList = [...mvpList].sort((a, b) => a.name.localeCompare(b.name));
+
+            let tableHtml = '<table>';
+
+            sortedList.forEach(boss => {
+                const info = currentData[boss.id];
+                
+                let nameClass = "name-white";
+                let statusHtml = "";
+                
+                if (info && info.respawnAt) {
+                    const diff = info.respawnAt - now;
+                    const seconds = Math.floor(Math.abs(diff) / 1000); // วินาทีแบบเต็ม
+
+                    if (diff > 0) {
+                        // 1. ตาย (Cooldown) -> ชื่อขาว : แดง
+                        nameClass = "name-white";
+                        statusHtml = `<span class="status-dead">dead. Respawn in ${seconds} seconds.</span>`;
+                    } 
+                    else if (diff > -LATE_MS) {
+                        // 2. ช่วงสุ่ม 10 นาที (Window) -> ชื่อขาว : ขาว (นับถอยหลัง)
+                        const windowLeftSeconds = Math.floor((LATE_MS + diff) / 1000);
+                        nameClass = "name-white";
+                        statusHtml = `<span class="status-window">${windowLeftSeconds}</span>`;
+                    } 
+                    else {
+                        // 3. เกิดชัวร์ (Alive) -> ชื่อเขียว : เขียว
+                        nameClass = "name-green";
+                        statusHtml = `<span class="status-alive">Alive</span>`;
+                    }
+                } else {
+                    // ไม่มีข้อมูล (N/A)
+                    nameClass = "name-white";
+                    statusHtml = `<span class="name-white">N/A</span>`;
+                }
+
+                // สร้างแถวตาราง
+                tableHtml += `
+                    <tr id="row-${boss.id}">
+                        <td class="col-name ${nameClass}">${boss.name}</td>
+                        <td class="col-sep">:</td>
+                        <td class="col-status">${statusHtml}</td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += '</table>';
+            container.innerHTML = tableHtml;
+        }
+    </script>
+</body>
+</html>
