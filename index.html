@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom RO MVP Monitor (Beta) By Vans</title>
+    <style>
+        /* --- CSS Styles --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 20px;
+            padding-top: 70px;
+            background: #121212;
+            color: #e0e0e0;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 { 
+            color: #4ade80;
+            text-align: center; 
+            margin-bottom: 15px; 
+            font-size: 1.5em;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        /* --- นาฬิกา --- */
+        #live-clock-container {
+            position: absolute;
+            top: 15px; 
+            left: 50%; 
+            transform: translateX(-50%);
+            z-index: 100;
+            background-color: rgba(30, 30, 30, 0.85);
+            padding: 5px 15px;
+            border-radius: 30px;
+            border: 1px solid #444;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        #live-clock {
+            font-family: "Courier New", monospace;
+            font-size: 1.5em; 
+            font-weight: bold; 
+            color: #ffffff;
+            text-shadow: 0 0 5px rgba(255,255,255,0.3);
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        /* --- ปุ่มควบคุม --- */
+        .top-controls {
+            position: absolute; top: 20px; right: 20px; z-index: 90;
+        }
+        #sort-now-btn { 
+            font-size: 1.5em; 
+            cursor: pointer; 
+            user-select: none; 
+            background: #2d2d2d;
+            color: #aaa;
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            transition: all 0.2s;
+        }
+        #sort-now-btn:hover { background: #444; color: #fff; transform: scale(1.05); }
+
+        /* --- Search --- */
+        .search-container {
+            position: relative; 
+            margin-bottom: 25px; 
+            max-width: 600px; 
+            margin-left: auto; 
+            margin-right: auto;
+        }
+        #search-input {
+            width: 100%; 
+            padding: 12px 20px; 
+            font-size: 1.1em;
+            background-color: #1e1e1e; 
+            color: #fff;
+            border: 1px solid #444; 
+            border-radius: 25px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        #search-input:focus { border-color: #4ade80; }
+
+        /* --- Grid Cards --- */
+        .mvp-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 12px;
+        }
+        .mvp {
+            background: #1e1e1e; 
+            border: 1px solid #333;
+            padding: 12px; 
+            border-radius: 10px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            transition: transform 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .mvp:hover { 
+            transform: translateY(-2px); 
+            border-color: #555; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .mvp-name { 
+            font-weight: bold; 
+            color: #fff; 
+            text-align: center; 
+            margin-bottom: 4px; 
+            font-size: 0.9em; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            width: 100%; 
+        }
+        .mvp-map { 
+            font-size: 0.75em; 
+            color: #888; 
+            margin-bottom: 5px; 
+        }
+        .mvp-sprite { 
+            width: 64px; 
+            height: 64px; 
+            object-fit: contain; 
+            margin: 5px 0; 
+            filter: drop-shadow(0 0 3px rgba(0,0,0,0.5));
+        }
+
+        /* --- Timer --- */
+        .timer {
+            font-family: "Courier New", monospace;
+            font-size: 1.4em; 
+            font-weight: bold; 
+            margin: 8px 0 4px 0;
+            text-align: center;
+        }
+        .timer.timer-normal { color: #e0e0e0; }
+        .timer.timer-window { color: #4ade80; text-shadow: 0 0 8px rgba(74, 222, 128, 0.4); }
+        .timer.timer-overdue { color: #f87171; }
+        .timer.timer-na { color: #555; font-size: 1.1em; font-weight: normal; }
+
+        .mvp-death-time { font-size: 0.75em; color: #666; height: 1.2em; }
+
+        /* [ใหม่] ชื่อคนฆ่า */
+        .mvp-killer {
+            font-size: 0.8em;
+            color: #ffb74d; /* สีส้มทอง */
+            margin-top: 4px;
+            font-weight: normal;
+            height: 1.2em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* --- Filter --- */
+        .filter-section {
+            background: #1e1e1e; 
+            border: 1px solid #333; 
+            border-radius: 10px;
+            padding: 15px; 
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+        .filter-controls { 
+            margin-bottom: 15px; 
+            display: flex; 
+            gap: 10px; 
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .filter-btn { 
+            background: #333; 
+            color: #ccc; 
+            border: 1px solid #555; 
+            padding: 5px 15px; 
+            cursor: pointer; 
+            border-radius: 5px; 
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+        .filter-btn:hover { background: #444; color: #fff; }
+        
+        #filter-container {
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+            gap: 8px;
+        }
+        .filter-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 6px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 4px;
+        }
+        .filter-item:hover { background: rgba(255,255,255,0.08); }
+        .filter-item input { margin-right: 8px; accent-color: #4ade80; cursor: pointer; }
+        .filter-item label { color: #aaa; font-size: 0.85em; cursor: pointer; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        @media (max-width: 600px) {
+            .mvp-container { grid-template-columns: repeat(2, 1fr); }
+            #live-clock { font-size: 1.2em; }
+            h1 { font-size: 1.2em; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="live-clock-container"><span id="live-clock">00:00:00</span></div>
+
+    <div class="top-controls">
+        <div id="sort-now-btn" title="เรียงลำดับตามเวลา">🔄</div>
+    </div>
+
+    <h1>Custom RO MVP Monitor (Beta) By Vans</h1>
+
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="🔍 ค้นหาชื่อบอส...">
+    </div>
+
+    <div class="mvp-container" id="mvp-list-container"></div>
+
+    <div class="filter-section">
+        <div class="filter-controls">
+            <button class="filter-btn" id="select-all">Select All</button>
+            <button class="filter-btn" id="deselect-all">Deselect All</button>
+        </div>
+        <div id="filter-container"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // --- Firebase Config (จากที่คุณให้มา) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBG-s9H6mYhElU4jQutXOIq0VGZ5G7EEPA",
+            authDomain: "custom-ro-auto-boss-timing.firebaseapp.com",
+            databaseURL: "https://custom-ro-auto-boss-timing-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "custom-ro-auto-boss-timing",
+            storageBucket: "custom-ro-auto-boss-timing.firebasestorage.app",
+            messagingSenderId: "963784417984",
+            appId: "1:963784417984:web:bd15cc38064248f50f4325"
+        };
+
+        // --- ข้อมูลบอส (ตรงกับ bot.js) ---
+        const mvpList = [
+            { id: 'amon_ra', name: 'Amon Ra', map: 'moc_pryd06', img: 'images/1511.gif' },
+            { id: 'eremes', name: 'Assassin Cross Eremes', map: 'lhz_dun03', img: 'images/1647.gif' },
+            { id: 'bacsojin', name: 'Bacsojin', map: 'lou_dun03', img: 'images/1630.gif' },
+            { id: 'baphomet', name: 'Baphomet', map: 'prt_maze03', img: 'images/1039.gif' },
+            { id: 'boitata', name: 'Boitata', map: 'bra_dun02', img: 'images/2068.gif' },
+            { id: 'dark_lord', name: 'Dark Lord', map: 'gl_chyard', img: 'images/1272.gif' },
+            { id: 'detale', name: 'Detale', map: 'abyss_03', img: 'images/1719.gif' },
+            { id: 'doppel', name: 'Doppelganger', map: 'gef_dun02', img: 'images/1046.gif' },
+            { id: 'dracula', name: 'Dracula', map: 'gef_dun01', img: 'images/1389.gif' },
+            { id: 'drake', name: 'Drake', map: 'treasure02', img: 'images/1112.gif' },
+            { id: 'eddga', name: 'Eddga', map: 'pay_fild11', img: 'images/1115.gif' },
+            { id: 'evil_snake_lord', name: 'Evil Snake Lord', map: 'gon_dun03', img: 'images/1418.gif' },
+            { id: 'bishop', name: 'Fallen Bishop', map: 'abbey02', img: 'images/1871.gif' },
+            { id: 'hatii', name: 'Garm / Hatii', map: 'xmas_fild01', img: 'images/1252.gif' },
+            { id: 'gloom', name: 'Gloom Under Night', map: 'ra_san05', img: 'images/1768.gif' },
+            { id: 'gold_queen', name: 'Gold Queen Scaraba', map: 'dic_dun03', img: 'images/2165.gif' },
+            { id: 'gtb', name: 'Golden Thief Bug', map: 'prt_sewb4', img: 'images/1086.gif' },
+            { id: 'gopinich', name: 'Gopinich', map: 'mosk_dun03', img: 'images/1885.gif' },
+            { id: 'magaleta', name: 'High Priest Magaleta', map: 'lhz_dun03', img: 'images/1649.gif' },
+            { id: 'katrinn', name: 'High Wizard Katrinn', map: 'lhz_dun03', img: 'images/1651.gif' },
+            { id: 'ifrit', name: 'Ifrit', map: 'thor_v03', img: 'images/1832.gif' },
+            { id: 'samurai', name: 'Incantation Samurai', map: 'ama_dun03', img: 'images/1492.gif' },
+            { id: 'kiel', name: 'Kiel D-01', map: 'kh_dun02', img: 'images/1734.gif' },
+            { id: 'stormy', name: 'Stormy Knight', map: 'xmas_dun02', img: 'images/1251.gif' },
+            { id: 'lady_tanee', name: 'Lady Tanee', map: 'ayo_dun02', img: 'images/1688.gif' },
+            { id: 'leak', name: 'Leak', map: 'dew_dun01', img: 'images/2156.gif' },
+            { id: 'seyren', name: 'Lord Knight Seyren', map: 'lhz_dun03', img: 'images/1646.gif' },
+            { id: 'lord_of_death', name: 'Lord of Death', map: 'niflheim', img: 'images/1373.gif' },
+            { id: 'maya', name: 'Maya', map: 'anthell02', img: 'images/1147.gif' },
+            { id: 'mistress', name: 'Mistress', map: 'mjolnir_04', img: 'images/1059.gif' },
+            { id: 'moonlight', name: 'Moonlight Flower', map: 'pay_dun04', img: 'images/1150.gif' },
+            { id: 'orc_lord', name: 'Orc Lord', map: 'gef_fild10', img: 'images/1190.gif' },
+            { id: 'osiris', name: 'Osiris', map: 'moc_pryd04', img: 'images/1038.gif' },
+            { id: 'pharaoh', name: 'Pharaoh', map: 'in_sphinx5', img: 'images/1157.gif' },
+            { id: 'phreeoni', name: 'Phreeoni', map: 'moc_fild17', img: 'images/1159.gif' },
+            { id: 'queen_scaraba', name: 'Queen Scaraba', map: 'dic_dun02', img: 'images/2087.gif' },
+            { id: 'rsx', name: 'RSX 0806', map: 'ein_dun02', img: 'images/1623.gif' },
+            { id: 'shecil', name: 'Sniper Shecil', map: 'lhz_dun03', img: 'images/1650.gif' },
+            { id: 'tao_gunka', name: 'Tao Gunka', map: 'beach_dun', img: 'images/1583.gif' },
+            { id: 'turtle_general', name: 'Turtle General', map: 'tur_dun04', img: 'images/1312.gif' },
+            { id: 'valkyrie', name: 'Valkyrie Randgris', map: 'odin_tem03', img: 'images/1751.gif' },
+            { id: 'vesper', name: 'Vesper', map: 'jupe_core', img: 'images/1685.gif' },
+            { id: 'harword', name: 'Whitesmith Harword', map: 'lhz_dun03', img: 'images/1648.gif' },
+            { id: 'morocc', name: 'Wounded Morocc', map: 'moc_fild22', img: 'images/1917.gif' },
+            { id: 'ygnizem', name: 'Ygnizem', map: 'lhz_dun02', img: 'images/1658.gif' },
+            // บอสที่มีหลายแมพ
+            { id: 'atroce_ra_fild02', name: 'Atroce (ra_fild02)', map: 'ra_fild02', img: 'images/1785.gif' },
+            { id: 'atroce_ra_fild03', name: 'Atroce (ra_fild03)', map: 'ra_fild03', img: 'images/1785.gif' },
+            { id: 'atroce_ra_fild04', name: 'Atroce (ra_fild04)', map: 'ra_fild04', img: 'images/1785.gif' },
+            { id: 'atroce_ve_fild01', name: 'Atroce (ve_fild01)', map: 've_fild01', img: 'images/1785.gif' },
+            { id: 'atroce_ve_fild02', name: 'Atroce (ve_fild02)', map: 've_fild02', img: 'images/1785.gif' },
+            { id: 'orc_hero_gef_fild02', name: 'Orc Hero (gef_fild02)', map: 'gef_fild02', img: 'images/1087.gif' },
+            { id: 'orc_hero_gef_fild14', name: 'Orc Hero (gef_fild14)', map: 'gef_fild14', img: 'images/1087.gif' }
+        ];
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const mvpRef = db.ref('mvp');
+        let currentData = {};
+
+        // --- 1. Live Clock ---
+        function updateClock() {
+            try {
+                const clockElement = document.getElementById('live-clock');
+                if (clockElement) {
+                    const now = new Date();
+                    function pad(num) { var s = num.toString(); return (s.length < 2) ? '0' + s : s; }
+                    const hh = pad(now.getHours());
+                    const mm = pad(now.getMinutes());
+                    const ss = pad(now.getSeconds());
+                    clockElement.textContent = hh + ':' + mm + ':' + ss;
+                }
+            } catch(e) { console.error(e); }
+        }
+        setInterval(updateClock, 1000);
+        document.addEventListener('DOMContentLoaded', updateClock);
+
+        // --- 2. Build Interface ---
+        const container = document.getElementById('mvp-list-container');
+        const filterContainer = document.getElementById('filter-container');
+        
+        // Sort by Name Alphabetically
+        mvpList.sort((a, b) => a.name.localeCompare(b.name)).forEach(boss => {
+            // สร้าง Card
+            const card = document.createElement('div');
+            card.className = 'mvp';
+            card.id = `card-${boss.id}`;
+            card.innerHTML = `
+                <span class="mvp-name" title="${boss.name}">${boss.name}</span>
+                <span class="mvp-map">${boss.map}</span>
+                <img class="mvp-sprite" src="${boss.img}" alt="${boss.name}" onerror="this.style.display='none'">
+                <div id="timer-${boss.id}" class="timer timer-na">N/A</div>
+                <div id="death-${boss.id}" class="mvp-death-time">-</div>
+                <div id="killer-${boss.id}" class="mvp-killer"></div>
+            `;
+            container.appendChild(card);
+
+            // สร้าง Filter Item
+            const fItem = document.createElement('div');
+            fItem.className = 'filter-item';
+            fItem.innerHTML = `<input type="checkbox" id="chk-${boss.id}" value="${boss.id}" checked><label for="chk-${boss.id}">${boss.name}</label>`;
+            filterContainer.appendChild(fItem);
+        });
+
+        // --- 3. Listen to Realtime Data ---
+        mvpRef.on('value', snapshot => {
+            currentData = snapshot.val() || {};
+            updateTimers();
+        }, (error) => {
+            console.error("Data read failed: " + error.code);
+        });
+
+        // --- 4. Timer Logic ---
+        const pad = n => n.toString().padStart(2,'0');
+        function msToTime(duration) {
+            let seconds = Math.floor((duration / 1000) % 60);
+            let minutes = Math.floor((duration / (1000 * 60)) % 60);
+            let hours = Math.floor((duration / (1000 * 60 * 60)));
+            return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        }
+
+        function updateTimers() {
+            const now = new Date().getTime();
+            const LATE_MS = 600000; // 10 Minutes
+
+            mvpList.forEach(boss => {
+                const timerEl = document.getElementById(`timer-${boss.id}`);
+                const deathEl = document.getElementById(`death-${boss.id}`);
+                const killerEl = document.getElementById(`killer-${boss.id}`);
+                const info = currentData[boss.id];
+
+                if (info && info.respawnAt) {
+                    const diff = info.respawnAt - now;
+                    
+                    if (diff > 0) {
+                        timerEl.textContent = msToTime(diff);
+                        timerEl.className = 'timer timer-normal';
+                    } else if (diff > -LATE_MS) {
+                        timerEl.textContent = "เกิดแล้ว!";
+                        timerEl.className = 'timer timer-window';
+                    } else {
+                        timerEl.textContent = msToTime(Math.abs(diff));
+                        timerEl.className = 'timer timer-overdue';
+                    }
+                    
+                    // Update Killer Name
+                    if (info.lastKiller) {
+                        killerEl.textContent = `MVP: ${info.lastKiller}`;
+                    } else {
+                        killerEl.textContent = "";
+                    }
+
+                } else {
+                    timerEl.textContent = "N/A";
+                    timerEl.className = 'timer timer-na';
+                    killerEl.textContent = "";
+                }
+            });
+            // Apply filter state
+            applyFilter(); 
+        }
+        
+        setInterval(() => { if(currentData) updateTimers(); }, 1000);
+
+        // --- 5. Filter & Sort Logic ---
+        document.getElementById('search-input').addEventListener('input', applyFilter);
+        filterContainer.addEventListener('change', applyFilter);
+        
+        function applyFilter() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            mvpList.forEach(boss => {
+                const card = document.getElementById(`card-${boss.id}`);
+                const chk = document.getElementById(`chk-${boss.id}`);
+                const matchSearch = boss.name.toLowerCase().includes(search);
+                const isChecked = chk.checked;
+                
+                if (card) {
+                    card.style.display = (matchSearch && isChecked) ? 'flex' : 'none';
+                }
+            });
+        }
+
+        // Sort Button Logic
+        document.getElementById('sort-now-btn').addEventListener('click', () => {
+             const cards = Array.from(container.children);
+             cards.sort((a, b) => {
+                 const idA = a.id.replace('card-', '');
+                 const idB = b.id.replace('card-', '');
+                 
+                 // Priority: Active Timer > Overdue > N/A
+                 const timeA = currentData[idA]?.respawnAt || Infinity;
+                 const timeB = currentData[idB]?.respawnAt || Infinity;
+                 
+                 // Sort by time remaining (lowest first)
+                 return timeA - timeB;
+             });
+             cards.forEach(c => container.appendChild(c));
+        });
+
+        // Select/Deselect All
+        document.getElementById('select-all').onclick = () => toggleAll(true);
+        document.getElementById('deselect-all').onclick = () => toggleAll(false);
+        function toggleAll(checked) {
+            document.querySelectorAll('#filter-container input').forEach(el => el.checked = checked);
+            applyFilter();
+        }
+
+    </script>
+</body>
+</html>
