@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom RO MVP Monitor (Beta) By Vans</title>
+    <title>RO MVP Monitor (Auto)</title>
     <style>
         /* --- CSS Styles --- */
         body {
@@ -24,7 +24,7 @@
             text-transform: uppercase;
         }
         
-        /* --- นาฬิกา --- */
+        /* --- นาฬิกา (Live Clock) --- */
         #live-clock-container {
             position: absolute;
             top: 15px; 
@@ -48,7 +48,7 @@
             white-space: nowrap;
         }
 
-        /* --- ปุ่มควบคุม --- */
+        /* --- ปุ่มควบคุมขวาบน --- */
         .top-controls {
             position: absolute; top: 20px; right: 20px; z-index: 90;
         }
@@ -65,7 +65,7 @@
         }
         #sort-now-btn:hover { background: #444; color: #fff; transform: scale(1.05); }
 
-        /* --- Search --- */
+        /* --- ช่องค้นหา --- */
         .search-container {
             position: relative; 
             margin-bottom: 25px; 
@@ -87,7 +87,7 @@
         }
         #search-input:focus { border-color: #4ade80; }
 
-        /* --- Grid Cards --- */
+        /* --- Grid แสดงผลบอส --- */
         .mvp-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
@@ -148,12 +148,12 @@
         .timer.timer-overdue { color: #f87171; }
         .timer.timer-na { color: #555; font-size: 1.1em; font-weight: normal; }
 
-        .mvp-death-time { font-size: 0.75em; color: #666; height: 1.2em; }
+        .mvp-death-time { font-size: 0.75em; color: #666; height: 1.2em; margin-top: auto; }
 
-        /* [ใหม่] ชื่อคนฆ่า */
+        /* ชื่อคนฆ่า */
         .mvp-killer {
             font-size: 0.8em;
-            color: #ffb74d; /* สีส้มทอง */
+            color: #ffb74d; 
             margin-top: 4px;
             font-weight: normal;
             height: 1.2em;
@@ -223,7 +223,7 @@
         <div id="sort-now-btn" title="เรียงลำดับตามเวลา">🔄</div>
     </div>
 
-    <h1>Custom RO MVP Monitor (Beta) By Vans</h1>
+    <h1>MVP MONITOR (AUTO)</h1>
 
     <div class="search-container">
         <input type="text" id="search-input" placeholder="🔍 ค้นหาชื่อบอส...">
@@ -243,7 +243,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // --- Firebase Config (จากที่คุณให้มา) ---
+        // --- Firebase Config ---
         const firebaseConfig = {
             apiKey: "AIzaSyBG-s9H6mYhElU4jQutXOIq0VGZ5G7EEPA",
             authDomain: "custom-ro-auto-boss-timing.firebaseapp.com",
@@ -254,7 +254,7 @@
             appId: "1:963784417984:web:bd15cc38064248f50f4325"
         };
 
-        // --- ข้อมูลบอส (ตรงกับ bot.js) ---
+        // --- ข้อมูลบอส ---
         const mvpList = [
             { id: 'amon_ra', name: 'Amon Ra', map: 'moc_pryd06', img: 'images/1511.gif' },
             { id: 'eremes', name: 'Assassin Cross Eremes', map: 'lhz_dun03', img: 'images/1647.gif' },
@@ -308,7 +308,10 @@
             { id: 'atroce_ve_fild01', name: 'Atroce (ve_fild01)', map: 've_fild01', img: 'images/1785.gif' },
             { id: 'atroce_ve_fild02', name: 'Atroce (ve_fild02)', map: 've_fild02', img: 'images/1785.gif' },
             { id: 'orc_hero_gef_fild02', name: 'Orc Hero (gef_fild02)', map: 'gef_fild02', img: 'images/1087.gif' },
-            { id: 'orc_hero_gef_fild14', name: 'Orc Hero (gef_fild14)', map: 'gef_fild14', img: 'images/1087.gif' }
+            { id: 'orc_hero_gef_fild14', name: 'Orc Hero (gef_fild14)', map: 'gef_fild14', img: 'images/1087.gif' },
+            
+            // บอสเพิ่มเติม (ตัวอย่างถ้าเพิ่ม beelzebub)
+            { id: 'beelzebub', name: 'Beelzebub', map: 'abbey03', img: 'images/1873.gif' }
         ];
 
         // Initialize Firebase
@@ -369,7 +372,7 @@
             console.error("Data read failed: " + error.code);
         });
 
-        // --- 4. Timer Logic ---
+        // --- 4. Timer Logic (แก้เป็นแบบเดิมแล้ว) ---
         const pad = n => n.toString().padStart(2,'0');
         function msToTime(duration) {
             let seconds = Math.floor((duration / 1000) % 60);
@@ -392,13 +395,18 @@
                     const diff = info.respawnAt - now;
                     
                     if (diff > 0) {
+                        // 1. สีขาว: นับถอยหลัง
                         timerEl.textContent = msToTime(diff);
                         timerEl.className = 'timer timer-normal';
                     } else if (diff > -LATE_MS) {
-                        timerEl.textContent = "เกิดแล้ว!";
+                        // 2. สีเขียว: นับถอยหลัง Window (10 นาที)
+                        const windowLeft = LATE_MS + diff;
+                        timerEl.textContent = msToTime(windowLeft);
                         timerEl.className = 'timer timer-window';
                     } else {
-                        timerEl.textContent = msToTime(Math.abs(diff));
+                        // 3. สีแดง: นับเดินหน้า (Overdue)
+                        const overdueTime = Math.abs(diff) - LATE_MS;
+                        timerEl.textContent = msToTime(overdueTime);
                         timerEl.className = 'timer timer-overdue';
                     }
                     
